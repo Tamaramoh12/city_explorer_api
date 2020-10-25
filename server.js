@@ -11,7 +11,7 @@ const PORT = process.env.PORT;
 
 app.get('/location',handleLocation);
 
-
+//add try and catch 
 function handleLocation(request,response){
     try{
         let city = request.query.city;
