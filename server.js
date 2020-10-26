@@ -1,5 +1,6 @@
 let express = require('express');
 let cors = require('cors');
+let superAgent = require('superagent');
 const { response } = require('express');
 
 let app = express();
@@ -10,17 +11,22 @@ require('dotenv').config();
 const PORT = process.env.PORT;
 
 
-//location starts here//
+///////////////////////////////////////////location starts here//////////////////////////////////////////////
 app.get('/location',handleLocation);
 
 //add try and catch 
 function handleLocation(request,response){
     try{
-        let city = request.query.city;
-        let jsonData = require('./data/location.json')
-        let jsonObject = jsonData[0];
-        let locationObject = new Location(city,jsonObject.display_name,jsonObject.lat,jsonObject.lon);
-        response.status(200).json(locationObject);
+        let geoAPIKey = process.env.GEOCODE_API_KEY; 
+        let city = request.query.city;     
+        //getting the city from the url
+        superAgent.get(`https://eu1.locationiq.com/v1/search.php?key=${geoAPIKey}&q=${city}&format=json`).
+        then((data)  => {
+            const geoAPIdata = data.body[0];
+            let locationObject = new Location(city,geoAPIdata.display_name,geoAPIdata.lat,geoAPIdata.lon);
+
+            response.status(200).json(locationObject);
+        });
     }
     catch(error){
         response.status(500).send('Sorry, something went wrong');
@@ -33,10 +39,11 @@ function Location(search_query,formatted_query,latitude,longitude){
     this.latitude = latitude;
     this.longitude = longitude;
 }
-//location end here//
+/////////////////////////////////////////////////location end here/////////////////////////////////////
 
 
-//weather starts here//
+
+/////////////////////////////////////weather starts here//////////////////////////////////////////////
 app.get('/weather',handleWeather);
 
 //add try and catch 
