@@ -52,7 +52,6 @@ function handleWeather(request,response){
     let weatherAPIkey = process.env.WEATHER_API_KEY;
     let search_query = request.query.search_query;    
     
-
     try{
         superAgent.get(`https://api.weatherbit.io/v2.0/forecast/daily?city=${search_query}&key=${weatherAPIkey}`).
         then((dataX) => {
@@ -63,7 +62,7 @@ function handleWeather(request,response){
             // console.log(weatherAPIdata);
             // response.send(weatherAPIdata);
             response.send(weatherArray);
-            // response.status(200).send(arrOfDays);
+            // response.status(200).send(weatherArray);
         });
     }
     catch(error){
@@ -77,6 +76,48 @@ function Weather(search_query,rain){
     this.time = rain.datetime;
 }
 //////////////////////////////////////////////////////weather end here//////////////////////////////////////////////////////////////////////////
+
+
+///////////////////////////////////////////////////////////////Trial Starts Here///////////////////////////////////////////////////////////////
+app.get('/trails',handleTrail);
+
+//add try and catch 
+function handleTrail(request,response){
+    let trailAPIkey = process.env.TRAIL_API_KEY;
+    
+    try{
+        superAgent.get(`https://www.hikingproject.com/data/get-trails?lat=${request.query.latitude}&lon=${request.query.longitude}&maxDistance=100&key=${trailAPIkey}`).
+        then((data) => {
+            const trailsData = data.body.trails;
+
+            // response.send(trailsData); //display on browser
+
+            let trailsArray = trailsData.map((element) =>{
+                let trailObject = new Trails(element);
+                return trailObject;
+            });
+            response.send(trailsArray);
+        });
+    }
+    catch(error){
+        response.status(500).send('Sorry, something went wrong');
+    }
+}
+
+// trails constructor
+function Trails(trailsData){ 
+    this.name = trailsData.name;
+    this.location = trailsData.location;
+    this.length = trailsData.length;
+    this.stars = trailsData.stars;
+    this.star_votes = trailsData.star_votes;
+    this.summary = trailsData.summary;
+    this.trail_url = trailsData.trail_url;
+    this.conditions = trailsData.conditions;
+    this.condition_date = trailsData.condition_date;
+    this.condition_time = trailsData.condition_time;
+}
+///////////////////////////////////////////////////////////////Trial Starts Here///////////////////////////////////////////////////////////////
 
 app.listen(PORT, ()=>{
     console.log(`app is listening on port ${PORT}`);
