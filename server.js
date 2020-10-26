@@ -48,32 +48,35 @@ app.get('/weather',handleWeather);
 
 //add try and catch 
 function handleWeather(request,response){
-
-    let arrOfDays=[];
+    let weatherArray = [];
+    let weatherAPIkey = process.env.WEATHER_API_KEY;
+    let search_query = request.query.search_query;    
+    
 
     try{
-        let jsonData = require('./data/weather.json');
-
-        let JsonWatherData = jsonData.data; //target the data array in json file
-
-        JsonWatherData.forEach((value) =>{
-         let weatherObject = new Weather(value.weather.description,value.valid_date);
-         arrOfDays.push(weatherObject);
+        superAgent.get(`https://api.weatherbit.io/v2.0/forecast/daily?city=${search_query}&key=${weatherAPIkey}`).
+        then((dataX) => {
+            dataX.body.data.map(rain => {
+                let weatherObj = new Weather(search_query,rain);
+                weatherArray.push(weatherObj);  
+            });
+            // console.log(weatherAPIdata);
+            // response.send(weatherAPIdata);
+            response.send(weatherArray);
+            // response.status(200).send(arrOfDays);
         });
-
-        response.status(200).send(arrOfDays);
-        
     }
     catch(error){
         response.status(500).send('Sorry, something went wrong');
     }
 }
 // weather constructor
-function Weather(forecast,time){ 
-    this.forecast = forecast; //description
-    this.time = new Date(time).toDateString() ; //valid_date"
+function Weather(search_query,rain){ 
+    this.search_query = search_query;
+    this.forecast = rain.weather.description;
+    this.time = rain.datetime;
 }
-//weather end here//
+//////////////////////////////////////////////////////weather end here//////////////////////////////////////////////////////////////////////////
 
 app.listen(PORT, ()=>{
     console.log(`app is listening on port ${PORT}`);
