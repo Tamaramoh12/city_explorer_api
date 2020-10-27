@@ -1,13 +1,17 @@
+'use strict';
+//require
+require('dotenv').config();
 let express = require('express');
 let cors = require('cors');
 let superAgent = require('superagent');
+let bg = require('bg');
 const { response } = require('express');
-
 let app = express();
 app.use(cors());
-
-require('dotenv').config();
-
+//DB
+const DATABASE_URL = process.env.DATABASE_URL;
+let client = new pg.Client(DATABASE_URL);
+//port
 const PORT = process.env.PORT;
 
 
@@ -119,7 +123,16 @@ function Trails(trailsData){
 }
 ///////////////////////////////////////////////////////////////Trial Starts Here///////////////////////////////////////////////////////////////
 
-app.listen(PORT, ()=>{
-    console.log(`app is listening on port ${PORT}`);
-});
+
+client.connect().then(()=>{
+    app.listen(PORT, ()=>{
+      console.log(`App listening to port ${PORT}`);
+    });
+  }).catch(err =>{
+    console.log('Sorry ... and error occured ..', err);
+  });
+
+// app.listen(PORT, ()=>{
+//     console.log(`app is listening on port ${PORT}`);
+// });
 
