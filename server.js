@@ -5,7 +5,7 @@ require('dotenv').config();
 let express = require('express');
 let cors = require('cors');
 let superAgent = require('superagent');
-let bg = require('bg');
+let pg = require('pg');
 const { response } = require('express');
 let app = express();
 app.use(cors());
@@ -19,20 +19,15 @@ const PORT = process.env.PORT;
 
 //Location starts here//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 app.get('/location',handleLocation);
-
+let geoAPIKey = process.env.GEOCODE_API_KEY; 
 //add try and catch 
 function handleLocation(request,response){
-    try{
-        let geoAPIKey = process.env.GEOCODE_API_KEY; 
+    try{       
         let city = request.query.city;     
-        getDataFromDataBase();
-        //getting the city from the url
-        superAgent.get(`https://eu1.locationiq.com/v1/search.php?key=${geoAPIKey}&q=${city}&format=json`).
-        then((data)  => {
-            const geoAPIdata = data.body[0];
-            let locationObject = new Location(city,geoAPIdata.display_name,geoAPIdata.lat,geoAPIdata.lon);
-
-            response.status(200).json(locationObject);
+        getDataFromDataBase(city).then((data) =>{
+            response.send(data);
+        }).catch(error => {
+            console.log('error in handleLocation')
         });
     }
     catch(error){
@@ -41,16 +36,38 @@ function handleLocation(request,response){
 }
 
 //function to get data from database
-function getDataFromDataBase(){
-    let quert = 'SELECT * FROM locations WHERE search_query = $1';
+function getDataFromDataBase(city){
+    console.log('test ..... getDataFromDataBase');
+    let query = 'SELECT search_query,formatted_query,latitude,longitude FROM locations WHERE search_query = $1';
     let values = [city];
 
     return client.query(query,values).then(result =>{
-        // console.log(result);
-        return result;
+        if(result.rowCount !== 0){
+            console.log('test ..... get city from DB');
+            return result.rows[0];
+        } else{
+            return getDataFromAPI(city);
+        }       
     });
 }
-
+//function to get data from API
+function getDataFromAPI(city){
+    console.log('test ..... getDataFromAPI');
+    return superAgent.get(`https://eu1.locationiq.com/v1/search.php?key=${geoAPIKey}&q=${city}&format=json`).
+    then((data)  => {
+        const geoAPIdata = data.body[0];
+        let locationObject = new Location(city,geoAPIdata.display_name,geoAPIdata.lat,geoAPIdata.lon);
+        console.log('test ..... create locationObject from API');
+        let addToDB = 'INSERT INTO locations(search_query,formatted_query,latitude,longitude)VALUES($1,$2,$3,$4);';
+        let insertionValues = [city,geoAPIdata.display_name,geoAPIdata.lat,geoAPIdata.lon];
+        client.query(addToDB,insertionValues).then(result =>{
+            console.log('test ..... insert to DB');
+        }).catch(error => {
+            console.log('error in getDataFromAPI, insert into DB');
+        });
+        return locationObject;
+    });
+}
 
 // location constructor
 function Location(search_query,formatted_query,latitude,longitude){
