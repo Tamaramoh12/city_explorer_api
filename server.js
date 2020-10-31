@@ -15,7 +15,7 @@ let client = new pg.Client(DATABASE_URL);
 //port
 const PORT = process.env.PORT;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+let globalCity = 'london'; //london for test
 
 //Location starts here//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 app.get('/location',handleLocation);
@@ -24,6 +24,7 @@ let geoAPIKey = process.env.GEOCODE_API_KEY;
 function handleLocation(request,response){
     try{       
         let city = request.query.city;     
+        globalCity = city;
         getDataFromDataBase(city).then((data) =>{
             response.send(data);
         }).catch(error => {
@@ -155,6 +156,45 @@ function Trails(trailsData){
 }
 //Trails end here//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+//Movies start here//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+app.get('/movies',handleMovies);
+
+//add try and catch 
+function handleMovies(request,response){
+    let moviesAPIkey = process.env.MOVIES_API_KEY; 
+    try{
+        superAgent.get(`https://api.themoviedb.org/3/search/movie?api_key=${moviesAPIkey}&query=${globalCity}`).
+        then((data) => {
+            const moviesData = data.body.results;
+
+            let moviesArray = moviesData.map((element) =>{
+                let moviesObject = new Movie(element);
+                return moviesObject;
+            });
+            response.send(moviesArray);
+        }).catch(error => {
+            console.log('error in handleMovies');
+        });
+    }
+    catch(error){
+        response.status(500).send('Sorry, something went wrong');
+    }
+}
+
+// Movies constructor
+function Movie(element){ 
+    this.title = element.title;
+    this.overview = element.overview;
+    this.average_votes = element.vote_average;
+    this.total_votes = element.vote_count;
+    this.image_url = `https://image.tmdb.org/t/p/w500${element.poster_path}`;
+    this.popularity = element.popularity;
+    this.released_on = element.release_date;
+}
+//Movies end here//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//Yelp starts here////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //Connecting to DB//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 client.connect().then(()=>{
